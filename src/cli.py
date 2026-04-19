@@ -274,28 +274,30 @@ def workflow_create(client, restore_from: Optional[str] = None):
         error(f"Could not fetch images: {e}")
         sys.exit(1)
 
-    # Filter by architecture compatibility
+    # Filter by exact architecture match for the chosen server type
     arch = chosen_type.get("architecture", "x86")
     images = [
         img for img in images
         if not img.get("deprecated")
-        and img.get("architecture", "x86") in (arch, "x86")  # include universal
+        and img.get("architecture", "x86") == arch
     ]
 
-    # Sort: Ubuntu first, then alphabetically
+    # Sort: Ubuntu first, then alphabetically by name
     def _img_sort(img):
         name = img.get("name", "")
-        if name.startswith("ubuntu"):
-            return f"0_{name}"
-        return f"1_{name}"
+        return f"0_{name}" if name.startswith("ubuntu") else f"1_{name}"
 
     images.sort(key=_img_sort)
 
-    def _display_image(img):
+    def _image_row(img):
         name = img.get("name", "?")
         desc = img.get("description", "")
+        img_arch = img.get("architecture", "x86")
         size = img.get("disk_size", "?")
-        return f"[bold]{name}[/bold]  [dim]{desc}  ({size} GB)[/dim]"
+        arch_label = "[cyan]arm64[/cyan]" if img_arch == "arm" else "[dim]x86[/dim]"
+        return [f"[bold]{name}[/bold]", desc, arch_label, f"{size} GB"]
+
+    _image_headers = ["Name", "Description", "Arch", "Disk"]
 
     if loaded_config:
         chosen_image = next(
@@ -303,11 +305,11 @@ def workflow_create(client, restore_from: Optional[str] = None):
         )
         if not chosen_image:
             warn(f"Saved image '{loaded_config.get('image')}' not available — please choose manually.")
-            chosen_image = choose_from_list(images, "Choose a base image:", display_fn=_display_image)
+            chosen_image = choose_from_table(images, "Choose a base image:", headers=_image_headers, row_fn=_image_row)
         else:
             info(f"Image: [bold]{chosen_image['name']}[/bold] (from config)")
     else:
-        chosen_image = choose_from_list(images, "Choose a base image:", display_fn=_display_image)
+        chosen_image = choose_from_table(images, "Choose a base image:", headers=_image_headers, row_fn=_image_row)
     if not chosen_image:
         sys.exit(1)
 
