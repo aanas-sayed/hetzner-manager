@@ -155,6 +155,7 @@ def _save_token_to_state(token: str) -> None:
     lines = [l for l in lines if not l.startswith("HETZNER_API_TOKEN=")]
     lines.append(f"HETZNER_API_TOKEN={token}")
     env_file.write_text("\n".join(lines) + "\n")
+    env_file.chmod(0o600)
     from src.ui import success
     success(f"Token saved to {env_file}")
 
