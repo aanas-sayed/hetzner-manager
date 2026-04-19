@@ -32,7 +32,12 @@ HW_INSTALL_DIR=/usr/local/lib/hw HW_BIN_DIR=/usr/local/bin \
   curl -fsSL https://raw.githubusercontent.com/aanas-sayed/hetzner-manager/main/install.sh | sh
 ```
 
-**Windows:** download `hw-vX.Y.Z-windows-x86_64.zip` from [Releases](../../releases/latest), extract, and add the `hw\` folder to your `PATH`.
+**Windows:**
+```powershell
+powershell -c "irm https://raw.githubusercontent.com/aanas-sayed/hetzner-manager/main/install.ps1 | iex"
+```
+
+Installs to `%LOCALAPPDATA%\hw\` and adds it to your user PATH automatically. Override with `$env:HW_INSTALL_DIR`.
 
 On first run with no API token configured, you'll be prompted to enter it and asked whether to save it to `~/.hetzner-workspace/.env` — after that, no further setup needed.
 
