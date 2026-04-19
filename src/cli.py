@@ -840,12 +840,14 @@ def _delete_server_resources(client, server_info: dict, skip_confirm: bool = Fal
 # ─────────────────────────────────────────────────────────────────────────────
 
 MENU_OPTIONS = [
-    {"key": "create", "label": "Create new workspace server"},
-    {"key": "archive", "label": "Archive workspace & delete server"},
-    {"key": "restore", "label": "Restore workspace from archive"},
-    {"key": "delete", "label": "Delete server (with optional archive)"},
-    {"key": "list", "label": "List running servers & saved configs"},
-    {"key": "quit", "label": "Quit"},
+    {"key": "create",          "label": "Create new workspace server"},
+    {"key": "archive",         "label": "Archive workspace & delete server"},
+    {"key": "restore",         "label": "Restore workspace from archive"},
+    {"key": "delete",          "label": "Delete server (with optional archive)"},
+    {"key": "list",            "label": "List running servers & saved configs"},
+    {"key": "delete-configs",  "label": "Delete saved configs"},
+    {"key": "delete-archives", "label": "Delete local archives"},
+    {"key": "quit",            "label": "Quit"},
 ]
 
 
@@ -891,12 +893,72 @@ def _workflow_list():
     blank()
 
 
+def _workflow_delete_configs():
+    configs = state.list_configs()
+    if not configs:
+        info("No saved configs.")
+        return
+
+    items = [{"name": name, **cfg} for name, cfg in configs.items()]
+
+    def _row(c):
+        return [c["name"], c.get("server_type", "?"), c.get("image", "?"),
+                ", ".join(c.get("install", [])) or "none", c.get("saved_at", "?")[:10]]
+
+    chosen = choose_multiple(items, "Select configs to delete:", headers=["Name", "Type", "Image", "Software", "Saved"], row_fn=_row)
+    if not chosen:
+        info("Nothing selected.")
+        return
+
+    names = [c["name"] for c in chosen]
+    warn(f"About to delete {len(names)} config(s): {', '.join(names)}")
+    if not prompt_confirm("Confirm?", default=False):
+        info("Cancelled.")
+        return
+
+    for name in names:
+        state.delete_config(name)
+        success(f"Deleted config: {name}")
+
+
+def _workflow_delete_archives():
+    archives = state.list_archives()
+    if not archives:
+        info("No saved archives.")
+        return
+
+    items = [{"name": name, **a} for name, a in archives.items()]
+
+    def _row(a):
+        path = Path(a.get("local_path", ""))
+        size = f"{path.stat().st_size / 1048576:.1f} MB" if path.exists() else "missing"
+        return [a["name"], a.get("server_type", "?"), a.get("archived_at", "?")[:10], size]
+
+    chosen = choose_multiple(items, "Select archives to delete:", headers=["Archive", "Type", "Date", "Size"], row_fn=_row)
+    if not chosen:
+        info("Nothing selected.")
+        return
+
+    names = [a["name"] for a in chosen]
+    warn(f"About to permanently delete {len(names)} archive(s): {', '.join(names)}")
+    if not prompt_confirm("Confirm?", default=False):
+        info("Cancelled.")
+        return
+
+    for a in chosen:
+        path = Path(a.get("local_path", ""))
+        if path.exists():
+            path.unlink()
+        state.delete_archive_record(a["name"])
+        success(f"Deleted archive: {a['name']}")
+
+
 def main():
     parser = argparse.ArgumentParser(prog="hw", description="Hetzner Workspace Manager")
     parser.add_argument(
         "workflow",
         nargs="?",
-        choices=["create", "archive", "restore", "delete", "list"],
+        choices=["create", "archive", "restore", "delete", "list", "delete-configs", "delete-archives"],
         help="Workflow to run (omit for interactive menu)",
     )
     parser.add_argument(
@@ -931,6 +993,14 @@ def main():
 
     if chosen_workflow == "list":
         _workflow_list()
+        sys.exit(0)
+
+    if chosen_workflow == "delete-configs":
+        _workflow_delete_configs()
+        sys.exit(0)
+
+    if chosen_workflow == "delete-archives":
+        _workflow_delete_archives()
         sys.exit(0)
 
     # All other workflows need API access

@@ -161,24 +161,37 @@ def choose_from_list(items: list, label: str, display_fn=None, min_col_width: in
         error(f"Please enter a number between 1 and {len(items)}.")
 
 
-def choose_multiple(items: list, label: str, display_fn=None) -> list:
-    """Choose multiple items by number (comma-separated or ranges)."""
+def choose_multiple(items: list, label: str, display_fn=None, headers=None, row_fn=None) -> list:
+    """Choose multiple items by number (comma-separated). Supports table display via headers+row_fn."""
     if not items:
         return []
 
     if RICH:
         _console.print(f"\n[bold]{label}[/bold]")
-        for i, item in enumerate(items, 1):
-            text = display_fn(item) if display_fn else str(item)
-            _console.print(f"  [dim]{i:>2}.[/dim] {text}")
-        _console.print(f"  [dim](Enter numbers separated by commas, e.g. 1,3,4 or press Enter to skip)[/dim]")
+        if headers and row_fn:
+            t = Table(box=box.SIMPLE_HEAD, show_edge=False,
+                      header_style="bold cyan", border_style="dim")
+            t.add_column("#", style="dim", justify="right", no_wrap=True)
+            for h in headers:
+                t.add_column(h, no_wrap=True)
+            for i, item in enumerate(items, 1):
+                t.add_row(str(i), *[str(c) for c in row_fn(item)])
+            _console.print(t)
+        else:
+            for i, item in enumerate(items, 1):
+                text = display_fn(item) if display_fn else str(item)
+                _console.print(f"  [dim]{i:>2}.[/dim] {text}")
+        _console.print(f"  [dim](comma-separated numbers, e.g. 1,3 — Enter to cancel)[/dim]")
         _console.print()
     else:
         print(f"\n{label}")
         for i, item in enumerate(items, 1):
-            text = display_fn(item) if display_fn else str(item)
+            if headers and row_fn:
+                text = "  ".join(str(c) for c in row_fn(item))
+            else:
+                text = display_fn(item) if display_fn else str(item)
             print(f"  {i:>2}. {_strip(text)}")
-        print("  (Enter numbers separated by commas, or press Enter to skip)")
+        print("  (comma-separated numbers, or Enter to cancel)")
         print()
 
     raw = prompt_input("Enter numbers").strip()
