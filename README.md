@@ -21,22 +21,18 @@ A CLI tool for provisioning, archiving, restoring, and deleting Hetzner Cloud wo
 
 ### Option A — Download binary (recommended)
 
-Download the latest binary for your platform from [Releases](../../releases/latest):
-
-| Platform | File |
-|----------|------|
-| macOS (Apple Silicon) | `hw-vX.Y.Z-darwin-arm64.tar.gz` |
-| Linux x86_64 | `hw-vX.Y.Z-linux-x86_64.tar.gz` |
-| Linux arm64 | `hw-vX.Y.Z-linux-arm64.tar.gz` |
-| Windows x86_64 | `hw-vX.Y.Z-windows-x86_64.zip` |
-
+**macOS / Linux:**
 ```bash
-# extract and symlink (macOS / Linux)
-tar -xzf hw-vX.Y.Z-darwin-arm64.tar.gz -C ~/.local/
-ln -s ~/.local/hw/hw /usr/local/bin/hw
-
-hw
+curl -fsSL https://raw.githubusercontent.com/aanas-sayed/hetzner-manager/main/install.sh | sh
 ```
+
+Installs to `~/.local/lib/hw/` and symlinks `hw` into `~/.local/bin/`. Override with env vars:
+```bash
+HW_INSTALL_DIR=/usr/local/lib/hw HW_BIN_DIR=/usr/local/bin \
+  curl -fsSL https://raw.githubusercontent.com/aanas-sayed/hetzner-manager/main/install.sh | sh
+```
+
+**Windows:** download `hw-vX.Y.Z-windows-x86_64.zip` from [Releases](../../releases/latest), extract, and add the `hw\` folder to your `PATH`.
 
 On first run with no API token configured, you'll be prompted to enter it and asked whether to save it to `~/.hetzner-workspace/.env` — after that, no further setup needed.
 
