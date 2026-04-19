@@ -17,7 +17,7 @@ from src.hetzner import get_client, HetznerAPIError
 from src.cloud_init import build_cloud_config, get_install_options
 from src.ui import (
     print_header, print_rule, info, success, error, warn, dim, blank,
-    prompt_input, prompt_confirm, choose_from_list, choose_multiple,
+    prompt_input, prompt_confirm, choose_from_list, choose_from_table, choose_multiple,
     print_table, print_key_value, print_code, spinner_context,
 )
 
@@ -170,38 +170,39 @@ def workflow_create(client, restore_from: Optional[str] = None):
 
     server_types.sort(key=_hourly)
 
-    # Build display rows
-    def _cpu_label(st) -> str:
+    # Build table rows
+    def _tier_label(st) -> str:
         name = st.get("name", "")
         cpu_type = st.get("cpu_type", "shared")
         if name.startswith("cax"):
-            return "Arm64/shared"
+            return "Arm64", "[white]shared[/white]"
         if name.startswith("cpx"):
-            return "AMD/shared-perf"
+            return "AMD", "[yellow]shared-perf[/yellow]"
         if name.startswith("ccx"):
-            return "AMD/dedicated"
-        # cx* — Intel/AMD shared (cost-optimised)
+            return "AMD", "[bold green]dedicated[/bold green]"
         tier = "dedicated" if cpu_type == "dedicated" else "shared"
-        return f"Intel/AMD/{tier}"
+        tier_markup = "[bold green]dedicated[/bold green]" if tier == "dedicated" else "[white]shared[/white]"
+        return "Intel/AMD", tier_markup
 
-    def _display_server_type(st):
-        cores = st.get("cores", "?")
-        memory = st.get("memory", "?")
-        disk = st.get("disk", "?")
+    def _server_type_row(st):
+        vendor, tier = _tier_label(st)
         price = _hourly(st)
-        price_str = f"€{price:.4f}/hr" if price < 9999 else "?"
-        return (
-            f"[bold]{st['name']}[/bold]  "
-            f"[cyan]{cores}[/cyan] vCPU ({_cpu_label(st)})  "
-            f"[cyan]{memory}[/cyan] GB RAM  "
-            f"[dim]{disk} GB[/dim]  "
-            f"[green]{price_str}[/green]"
-        )
+        price_str = f"[green]€{price:.4f}[/green]" if price < 9999 else "?"
+        return [
+            f"[bold]{st['name']}[/bold]",
+            f"[cyan]{st.get('cores', '?')}[/cyan]",
+            vendor,
+            tier,
+            f"[cyan]{st.get('memory', '?')}[/cyan]",
+            f"[dim]{st.get('disk', '?')}[/dim]",
+            price_str,
+        ]
 
-    chosen_type = choose_from_list(
+    chosen_type = choose_from_table(
         server_types,
         "Choose a server type (sorted by price, cheapest first):",
-        display_fn=_display_server_type,
+        headers=["Name", "vCPU", "CPU", "Tier", "RAM (GB)", "Disk (GB)", "€/hr"],
+        row_fn=_server_type_row,
     )
     if not chosen_type:
         sys.exit(1)

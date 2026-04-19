@@ -197,6 +197,44 @@ def choose_multiple(items: list, label: str, display_fn=None) -> list:
     return selected
 
 
+def choose_from_table(items: list, label: str, headers: list[str], row_fn, *, min_width: int = 0) -> any:
+    """
+    Display items in a Rich Table with a leading # column, prompt for selection.
+    row_fn(item) -> list[str] — may contain Rich markup.
+    Falls back to a plain numbered list when rich is unavailable.
+    """
+    if not items:
+        error("No items to choose from.")
+        return None
+
+    if RICH:
+        t = Table(box=box.SIMPLE_HEAD, show_edge=False,
+                  header_style="bold cyan", border_style="dim", min_width=min_width)
+        t.add_column("#", style="dim", justify="right", no_wrap=True)
+        for h in headers:
+            t.add_column(h, no_wrap=True)
+        for i, item in enumerate(items, 1):
+            t.add_row(str(i), *[str(c) for c in row_fn(item)])
+        _console.print(f"\n[bold]{label}[/bold]")
+        _console.print(t)
+    else:
+        print(f"\n{label}")
+        for i, item in enumerate(items, 1):
+            row = row_fn(item)
+            print(f"  {i:>2}. {_strip('  '.join(str(c) for c in row))}")
+        print()
+
+    while True:
+        raw = prompt_input("Enter number").strip()
+        try:
+            idx = int(raw) - 1
+            if 0 <= idx < len(items):
+                return items[idx]
+        except ValueError:
+            pass
+        error(f"Please enter a number between 1 and {len(items)}.")
+
+
 def print_table(headers: list[str], rows: list[list], title: str = "") -> None:
     if RICH:
         t = Table(title=title or None, box=box.SIMPLE_HEAD, show_edge=False,
