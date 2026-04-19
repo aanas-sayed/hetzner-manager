@@ -366,7 +366,16 @@ def workflow_create(client, restore_from: Optional[str] = None):
         )
         install_keys = [s["key"] for s in selected_software]
 
-    # ── 8. Config name ───────────────────────────────────────────────────────
+    # ── 8. Network ───────────────────────────────────────────────────────────
+    print_rule("Network")
+    default_ipv4 = loaded_config.get("enable_ipv4", True) if loaded_config else True
+    warn(
+        "IPv6-only servers cannot reach GitHub, AWS S3, or Docker Hub — "
+        "tools like uv, act, rclone, and Docker image pulls may fail."
+    )
+    enable_ipv4 = prompt_confirm("Enable IPv4? (recommended)", default=default_ipv4)
+
+    # ── 9. Config name ───────────────────────────────────────────────────────
     print_rule("Configuration")
     if loaded_config:
         default_config_name = loaded_config["name"]
@@ -383,7 +392,7 @@ def workflow_create(client, restore_from: Optional[str] = None):
         if not config_name:
             config_name = f"config_{int(time.time())}"
 
-    # ── 9. Server name ───────────────────────────────────────────────────────
+    # ── 9b. Server name ──────────────────────────────────────────────────────
     server_name = prompt_input("Server/SSH alias name").strip()
     if not server_name:
         server_name = f"workspace-{int(time.time())}"
@@ -400,6 +409,7 @@ def workflow_create(client, restore_from: Optional[str] = None):
         ("SSH keys", f"{len(pubkeys)} key(s) selected"),
         ("Config name", config_name if config_name else "[dim]not saving[/dim]"),
         ("Server name", server_name),
+        ("Network", "IPv4 + IPv6" if enable_ipv4 else "[yellow]IPv6 only[/yellow]"),
         ("Restore archive", str(restore_archive_path) if restore_archive_path else "none"),
     ])
     blank()
@@ -425,7 +435,7 @@ def workflow_create(client, restore_from: Optional[str] = None):
         "location": location["name"],
         "user_data": user_data,
         "public_net": {
-            "enable_ipv4": False,
+            "enable_ipv4": enable_ipv4,
             "enable_ipv6": True,
         },
         "start_after_create": True,
@@ -454,23 +464,26 @@ def workflow_create(client, restore_from: Optional[str] = None):
 
     server = result.get("server", {})
     server_id = server.get("id")
-    
+    public_net = server.get("public_net", {})
+
+    # Get IPv4 address
+    ipv4_host = public_net.get("ipv4", {}).get("ip", "") if enable_ipv4 else ""
+
     # Get IPv6 address
-    ipv6_network = server.get("public_net", {}).get("ipv6", {})
+    ipv6_network = public_net.get("ipv6", {})
     ipv6_address = ipv6_network.get("ip", "")
-    # Hetzner gives the /64 network; the server's address is ::1 in that network
     if ipv6_address and "/" in ipv6_address:
         ipv6_prefix = ipv6_address.split("/")[0]
-        # Convert fe80::.../64 → use the actual assigned IP
-        # The server uses the network address + ::1
-        if ipv6_prefix.endswith("::"):
-            ipv6_host = ipv6_prefix + "1"
-        else:
-            ipv6_host = ipv6_prefix  # already specific
+        ipv6_host = ipv6_prefix + "1" if ipv6_prefix.endswith("::") else ipv6_prefix
     else:
         ipv6_host = ipv6_address
 
+    # Prefer IPv4 for SSH when available
+    ssh_host = ipv4_host if ipv4_host else ipv6_host
+
     success(f"Server created! ID: {server_id}")
+    if ipv4_host:
+        info(f"IPv4: {ipv4_host}")
     info(f"IPv6: {ipv6_host}")
     info("Waiting for server to become ready (this may take 1-2 minutes)...")
 
@@ -482,11 +495,11 @@ def workflow_create(client, restore_from: Optional[str] = None):
         ready_server = server
 
     # ── 13. Update SSH config ─────────────────────────────────────────────────
-    if ipv6_host:
+    if ssh_host:
         info(f"Adding SSH config entry: [bold]{server_name}[/bold]")
         ssh_config.add_entry(
             name=server_name,
-            hostname=ipv6_host,
+            hostname=ssh_host,
             username=username,
             identity_file=identity_file,
         )
@@ -503,6 +516,7 @@ def workflow_create(client, restore_from: Optional[str] = None):
         "install": install_keys,
         "ssh_key_count": len(pubkeys),
         "identity_file": identity_file,
+        "enable_ipv4": enable_ipv4,
     }
     if config_name:
         state.save_config(config_name, config_data)
@@ -512,8 +526,9 @@ def workflow_create(client, restore_from: Optional[str] = None):
         "name": server_name,
         "config_name": config_name,
         "username": username,
+        "ipv4_address": ipv4_host,
         "ipv6_address": ipv6_host,
-        "hostname": ipv6_host,
+        "hostname": ssh_host,
         "identity_file": identity_file,
         "server_type": chosen_type["name"],
         "location": location["name"],
@@ -530,12 +545,16 @@ def workflow_create(client, restore_from: Optional[str] = None):
 
     blank()
     print_rule("Done")
+    addr_pairs = []
+    if ipv4_host:
+        addr_pairs.append(("IPv4", ipv4_host))
+    addr_pairs.append(("IPv6", ipv6_host))
     print_key_value([
         ("Server", server_name),
         ("ID", str(server_id)),
-        ("IPv6", ipv6_host),
+        *addr_pairs,
         ("Connect", f"ssh {server_name}"),
-        ("Config saved", config_name),
+        ("Config saved", config_name if config_name else "not saved"),
     ])
     blank()
 
