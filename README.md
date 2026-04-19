@@ -10,7 +10,7 @@ A CLI tool for provisioning, archiving, restoring, and deleting Hetzner Cloud wo
 
 ---
 
-## Demo
+## Demo (example resource creation using v0.1.0)
 
 <!-- replace with an actual recording -->
 ![Demo](assets/demo.gif)
