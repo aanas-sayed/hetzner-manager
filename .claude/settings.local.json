@@ -3,6 +3,9 @@
     "allow": [
       "Bash(uv run *)",
       "Bash(git add *)"
+    ],
+    "deny": [
+      "Read(.env)"
     ]
   }
 }
