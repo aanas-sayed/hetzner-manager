@@ -1,6 +1,19 @@
 # Hetzner Workspace Manager
 
+[![Release](https://img.shields.io/github/v/release/aanas-sayed/hetzner-manager?style=flat-square)](https://github.com/aanas-sayed/hetzner-manager/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/aanas-sayed/hetzner-manager/release.yml?style=flat-square&label=build)](https://github.com/aanas-sayed/hetzner-manager/actions/workflows/release.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square)](https://www.python.org/)
+
+> **⚠ Preview / personal use** — this tool provisions and deletes real cloud servers. Running it will incur costs and make destructive changes. Use with care.
+
 A CLI tool for provisioning, archiving, restoring, and deleting Hetzner Cloud workspace servers — with SSH config management, server hardening, and software install automation.
+
+---
+
+## Demo (example resource creation using v0.1.0)
+
+<!-- replace with an actual recording -->
+![Demo](assets/demo.gif)
 
 ---
 
@@ -8,29 +21,25 @@ A CLI tool for provisioning, archiving, restoring, and deleting Hetzner Cloud wo
 
 ### Option A — Download binary (recommended)
 
-Download the latest binary for your platform from [Releases](../../releases/latest):
-
-| Platform | File |
-|----------|------|
-| macOS (Apple Silicon) | `hetzner-workspace-darwin-arm64` |
-| macOS (Intel) | `hetzner-workspace-darwin-x86_64` |
-| Linux x86_64 | `hetzner-workspace-linux-x86_64` |
-| Linux arm64 | `hetzner-workspace-linux-arm64` |
-
+**macOS / Linux:**
 ```bash
-# make executable and move to PATH
-chmod +x hetzner-workspace-darwin-arm64
-mv hetzner-workspace-darwin-arm64 /usr/local/bin/hetzner-workspace
-
-hetzner-workspace
+curl -fsSL https://raw.githubusercontent.com/aanas-sayed/hetzner-manager/main/install.sh | sh
 ```
+
+Installs to `~/.local/lib/hw/` and symlinks `hw` into `~/.local/bin/`. Override with env vars:
+```bash
+HW_INSTALL_DIR=/usr/local/lib/hw HW_BIN_DIR=/usr/local/bin \
+  curl -fsSL https://raw.githubusercontent.com/aanas-sayed/hetzner-manager/main/install.sh | sh
+```
+
+**Windows:**
+```powershell
+powershell -c "irm https://raw.githubusercontent.com/aanas-sayed/hetzner-manager/main/install.ps1 | iex"
+```
+
+Installs to `%LOCALAPPDATA%\hw\` and adds it to your user PATH automatically. Override with `$env:HW_INSTALL_DIR`.
 
 On first run with no API token configured, you'll be prompted to enter it and asked whether to save it to `~/.hetzner-workspace/.env` — after that, no further setup needed.
-
-Add a shell alias for convenience:
-```bash
-alias hw='hetzner-workspace'
-```
 
 ### Option B — Run from source
 
@@ -44,16 +53,19 @@ uv run main.py
 
 On first run you'll be prompted for your API token and offered the option to save it. Alternatively, copy `.env.example` to `.env` and set `HETZNER_API_TOKEN` manually.
 
-Add a shell alias:
+Add to your shell rc:
 ```bash
 alias hw='uv run /path/to/hetzner-workspace/main.py'
 ```
 
+Either way, you use `hw` — same syntax regardless of how you installed it.
+
 ### Building the binary locally
 
 ```bash
-uv run --with pyinstaller pyinstaller --onefile --name hetzner-workspace main.py
-# binary written to dist/hetzner-workspace
+uv run --with pyinstaller pyinstaller --onedir --name hw --add-data "scripts:scripts" main.py
+cp -r dist/hw /usr/local/lib/hw
+ln -s /usr/local/lib/hw/hw /usr/local/bin/hw
 ```
 
 ---
@@ -62,17 +74,18 @@ uv run --with pyinstaller pyinstaller --onefile --name hetzner-workspace main.py
 
 ### `create` — Provision a new workspace
 ```bash
-hetzner-workspace create   # binary
-uv run main.py create      # from source
+hw create
 ```
 Steps you'll be guided through:
-1. **Server type** — sorted cheapest first, showing CPU/RAM/arch/price. Location auto-selected (cheapest region first).
-2. **Base image** — all available system images listed (Ubuntu first).
-3. **SSH keys** — uses your Hetzner account keys if available, falls back to local `~/.ssh/*.pub` files.
-4. **Username** — default user to create on the server.
-5. **Software** — pick from: git, docker, uv, npm, homebrew, go.
-6. **Config name** — saved to `~/.hetzner-workspace/configs.json` for reuse.
-7. **Server name** — used as the SSH alias in `~/.ssh/config`.
+1. **Load saved config** — optionally pre-fill all options from a previous config.
+2. **Server type** — sorted cheapest first, showing CPU/RAM/arch/price. Location auto-selected (cheapest region first).
+3. **Base image** — filtered by server architecture, Ubuntu listed first.
+4. **SSH keys** — uses your Hetzner account keys if available, falls back to local `~/.ssh/*.pub` files.
+5. **Username** — default user to create on the server.
+6. **Software** — pick any combination of available tools (see [Software Install Options](#software-install-options)).
+7. **Network** — IPv4 optional (IPv6 always assigned). IPv6-only servers can't reach GitHub/Docker Hub/AWS S3.
+8. **Config name** — saved to `~/.hetzner-workspace/configs.json` for reuse.
+9. **Server name** — used as the SSH alias in `~/.ssh/config`.
 
 Server is provisioned with:
 - UFW firewall (deny inbound except SSH)
@@ -89,8 +102,7 @@ SSH config entry added with:
 
 ### `archive` — Save workspace and delete server
 ```bash
-hetzner-workspace archive
-uv run main.py archive
+hw archive
 ```
 1. Select which running server to archive
 2. Name the archive
@@ -102,8 +114,7 @@ uv run main.py archive
 
 ### `restore` — Restore from archive
 ```bash
-hetzner-workspace restore
-uv run main.py restore
+hw restore
 ```
 1. List all local archives with metadata
 2. Pick archive to restore
@@ -113,8 +124,7 @@ uv run main.py restore
 
 ### `delete` — Delete without archiving
 ```bash
-hetzner-workspace delete
-uv run main.py delete
+hw delete
 ```
 1. Select server
 2. **Offers to archive first** (recommended)
@@ -123,8 +133,7 @@ uv run main.py delete
 
 ### `list` — View current state
 ```bash
-hetzner-workspace list
-uv run main.py list
+hw list
 ```
 Shows running servers, saved configs, and local archives.
 
@@ -139,9 +148,8 @@ Everything is stored in `~/.hetzner-workspace/`:
   configs.json          # named build configurations
   servers.json          # registered running servers
   archives.json         # archive metadata
-  archives/
-    myserver_20241201_120000.tar.zst
-    ...
+  archives/             # .tar.zst archive files
+  logs/                 # hw_YYYYMMDD.log (only written when -v or -vv is passed)
 ```
 
 Override location: `export HW_STATE_DIR=/path/to/dir`
@@ -193,11 +201,33 @@ Host my-server
 | Key | What gets installed |
 |-----|-------------------|
 | `git` | git via apt |
-| `docker` | Docker CE via official script + post-install (user added to docker group, service enabled) |
+| `docker` | Docker CE + Compose plugin via official script; user added to docker group |
 | `uv` | uv Python package manager |
 | `npm` | Node.js LTS + npm via NodeSource |
 | `homebrew` | Linuxbrew (installed as workspace user) |
-| `go` | Latest stable Go (downloaded from go.dev) |
+| `go` | Latest stable Go, arch-aware (downloaded from go.dev) |
+| `rust` | Rust toolchain via rustup |
+| `tmux` | tmux terminal multiplexer via apt |
+| `act` | act — run GitHub Actions locally |
+| `rclone` | rclone — sync files to/from cloud storage |
+
+New tools can be added without touching Python — see [Adding a New Install Tool](#adding-a-new-install-tool).
+
+---
+
+## Adding a New Install Tool
+
+1. Create `scripts/install/<name>.sh` — must accept `$1` as username, use `set -euo pipefail`
+2. Add an entry to `scripts/install/meta.json`:
+   ```json
+   "name": {
+     "label": "Human-readable label",
+     "apt_packages": ["any-apt-deps-needed-before-script-runs"]
+   }
+   ```
+3. Done — it auto-appears in the CLI software selection menu.
+
+Scripts are embedded into cloud-init and run on the server as `bash /opt/install/<name>.sh <username>`.
 
 ---
 

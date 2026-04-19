@@ -4,6 +4,7 @@ Call setup() once from main() before anything else.
 """
 
 import logging
+import os
 import shlex
 from datetime import datetime
 from pathlib import Path
@@ -11,7 +12,10 @@ from pathlib import Path
 DRY_RUN: bool = False
 _logger: logging.Logger | None = None
 
-_LOGS_DIR = Path(__file__).parent.parent / "logs"
+
+def _logs_dir() -> Path:
+    state_dir = Path(os.environ.get("HW_STATE_DIR", Path.home() / ".hetzner-workspace"))
+    return state_dir / "logs"
 
 
 def setup(verbosity: int = 0, dry_run: bool = False) -> None:
@@ -24,8 +28,9 @@ def setup(verbosity: int = 0, dry_run: bool = False) -> None:
         else logging.WARNING
     )
 
-    _LOGS_DIR.mkdir(exist_ok=True)
-    log_file = _LOGS_DIR / f"hw_{datetime.now().strftime('%Y%m%d')}.log"
+    logs_dir = _logs_dir()
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    log_file = logs_dir / f"hw_{datetime.now().strftime('%Y%m%d')}.log"
 
     handler = logging.FileHandler(log_file, encoding="utf-8")
     handler.setFormatter(logging.Formatter(

@@ -8,13 +8,22 @@ Adding a new tool = drop a .sh file + one entry in meta.json. No Python changes 
 """
 
 import json
+import sys
 from pathlib import Path
 from typing import Optional
 
 
 # ── Script discovery ───────────────────────────────────────────────────────────
 
-SCRIPTS_DIR = Path(__file__).parent.parent / "scripts" / "install"
+def _scripts_dir() -> Path:
+    # sys._MEIPASS is set by PyInstaller (both --onefile and --onedir) and points
+    # to where bundled data files live. In --onedir mode (PyInstaller 6+) this is
+    # the _internal/ subdirectory, not the directory containing the executable.
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS) / "scripts" / "install"
+    return Path(__file__).parent.parent / "scripts" / "install"
+
+SCRIPTS_DIR = _scripts_dir()
 
 
 def _load_meta() -> dict:
