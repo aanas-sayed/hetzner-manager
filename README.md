@@ -14,10 +14,10 @@ Download the latest binary for your platform from [Releases](../../releases/late
 
 | Platform | File |
 |----------|------|
-| macOS (Apple Silicon) | `hetzner-workspace-darwin-arm64` |
-| macOS (Intel) | `hetzner-workspace-darwin-x86_64` |
-| Linux x86_64 | `hetzner-workspace-linux-x86_64` |
-| Linux arm64 | `hetzner-workspace-linux-arm64` |
+| macOS (Apple Silicon) | `hetzner-workspace-vX.Y.Z-darwin-arm64` |
+| Linux x86_64 | `hetzner-workspace-vX.Y.Z-linux-x86_64` |
+| Linux arm64 | `hetzner-workspace-vX.Y.Z-linux-arm64` |
+| Windows x86_64 | `hetzner-workspace-vX.Y.Z-windows-x86_64.exe` |
 
 ```bash
 # make executable and move to PATH
