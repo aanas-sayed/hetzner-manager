@@ -171,17 +171,26 @@ def workflow_create(client, restore_from: Optional[str] = None):
     server_types.sort(key=_hourly)
 
     # Build display rows
-    def _display_server_type(st):
+    def _cpu_label(st) -> str:
+        name = st.get("name", "")
         arch = st.get("architecture", "x86")
+        cpu_type = st.get("cpu_type", "shared")
+        if cpu_type == "dedicated":
+            return f"{arch}/dedicated"
+        # shared — distinguish cost-optimised (cx/cax) from performance (cpx)
+        if name.startswith("cpx"):
+            return f"{arch}/shared-perf"
+        return f"{arch}/shared"
+
+    def _display_server_type(st):
         cores = st.get("cores", "?")
         memory = st.get("memory", "?")
         disk = st.get("disk", "?")
-        stype = st.get("cpu_type", "shared")
         price = _hourly(st)
         price_str = f"€{price:.4f}/hr" if price < 9999 else "?"
         return (
             f"[bold]{st['name']}[/bold]  "
-            f"[cyan]{cores}[/cyan] vCPU ({arch}/{stype})  "
+            f"[cyan]{cores}[/cyan] vCPU ({_cpu_label(st)})  "
             f"[cyan]{memory}[/cyan] GB RAM  "
             f"[dim]{disk} GB[/dim]  "
             f"[green]{price_str}[/green]"
