@@ -1,5 +1,7 @@
 # Hetzner Workspace Manager
 
+> **⚠ Preview / personal use** — this tool provisions and deletes real cloud servers. Running it will incur costs and make destructive changes. Use with care.
+
 A CLI tool for provisioning, archiving, restoring, and deleting Hetzner Cloud workspace servers — with SSH config management, server hardening, and software install automation.
 
 ---
@@ -66,13 +68,15 @@ hetzner-workspace create   # binary
 uv run main.py create      # from source
 ```
 Steps you'll be guided through:
-1. **Server type** — sorted cheapest first, showing CPU/RAM/arch/price. Location auto-selected (cheapest region first).
-2. **Base image** — all available system images listed (Ubuntu first).
-3. **SSH keys** — uses your Hetzner account keys if available, falls back to local `~/.ssh/*.pub` files.
-4. **Username** — default user to create on the server.
-5. **Software** — pick from: git, docker, uv, npm, homebrew, go.
-6. **Config name** — saved to `~/.hetzner-workspace/configs.json` for reuse.
-7. **Server name** — used as the SSH alias in `~/.ssh/config`.
+1. **Load saved config** — optionally pre-fill all options from a previous config.
+2. **Server type** — sorted cheapest first, showing CPU/RAM/arch/price. Location auto-selected (cheapest region first).
+3. **Base image** — filtered by server architecture, Ubuntu listed first.
+4. **SSH keys** — uses your Hetzner account keys if available, falls back to local `~/.ssh/*.pub` files.
+5. **Username** — default user to create on the server.
+6. **Software** — pick any combination of available tools (see [Software Install Options](#software-install-options)).
+7. **Network** — IPv4 optional (IPv6 always assigned). IPv6-only servers can't reach GitHub/Docker Hub/AWS S3.
+8. **Config name** — saved to `~/.hetzner-workspace/configs.json` for reuse.
+9. **Server name** — used as the SSH alias in `~/.ssh/config`.
 
 Server is provisioned with:
 - UFW firewall (deny inbound except SSH)
@@ -193,11 +197,33 @@ Host my-server
 | Key | What gets installed |
 |-----|-------------------|
 | `git` | git via apt |
-| `docker` | Docker CE via official script + post-install (user added to docker group, service enabled) |
+| `docker` | Docker CE + Compose plugin via official script; user added to docker group |
 | `uv` | uv Python package manager |
 | `npm` | Node.js LTS + npm via NodeSource |
 | `homebrew` | Linuxbrew (installed as workspace user) |
-| `go` | Latest stable Go (downloaded from go.dev) |
+| `go` | Latest stable Go, arch-aware (downloaded from go.dev) |
+| `rust` | Rust toolchain via rustup |
+| `tmux` | tmux terminal multiplexer via apt |
+| `act` | act — run GitHub Actions locally |
+| `rclone` | rclone — sync files to/from cloud storage |
+
+New tools can be added without touching Python — see [Adding a New Install Tool](#adding-a-new-install-tool).
+
+---
+
+## Adding a New Install Tool
+
+1. Create `scripts/install/<name>.sh` — must accept `$1` as username, use `set -euo pipefail`
+2. Add an entry to `scripts/install/meta.json`:
+   ```json
+   "name": {
+     "label": "Human-readable label",
+     "apt_packages": ["any-apt-deps-needed-before-script-runs"]
+   }
+   ```
+3. Done — it auto-appears in the CLI software selection menu.
+
+Scripts are embedded into cloud-init and run on the server as `bash /opt/install/<name>.sh <username>`.
 
 ---
 
