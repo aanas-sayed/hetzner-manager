@@ -138,9 +138,8 @@ Everything is stored in `~/.hetzner-workspace/`:
   configs.json          # named build configurations
   servers.json          # registered running servers
   archives.json         # archive metadata
-  archives/
-    myserver_20241201_120000.tar.zst
-    ...
+  archives/             # .tar.zst archive files
+  logs/                 # hw_YYYYMMDD.log (only written when -v or -vv is passed)
 ```
 
 Override location: `export HW_STATE_DIR=/path/to/dir`
