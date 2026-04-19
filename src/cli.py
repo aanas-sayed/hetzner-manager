@@ -140,6 +140,26 @@ def workflow_create(client, restore_from: Optional[str] = None):
         "Provision a new Hetzner cloud server with your configuration",
     )
 
+    # ── 0. Optionally load a saved config ────────────────────────────────────
+    saved_configs = state.list_configs()
+    loaded_config: Optional[dict] = None
+    if saved_configs:
+        use_config = prompt_confirm("Load a saved config?", default=True)
+        if use_config:
+            config_items = [{"name": k, **v} for k, v in saved_configs.items()]
+            chosen_cfg = choose_from_list(
+                config_items,
+                "Choose a config:",
+                display_fn=lambda c: (
+                    f"[bold]{c['name']}[/bold]  "
+                    f"[dim]{c.get('server_type','?')} · {c.get('image','?')} · "
+                    f"user={c.get('username','?')} · "
+                    f"install=[{', '.join(c.get('install', []))}][/dim]"
+                ),
+            )
+            if chosen_cfg:
+                loaded_config = chosen_cfg
+
     # ── 1. Pick server type ──────────────────────────────────────────────────
     print_rule("Server Selection")
     info("Fetching available server types...")
@@ -197,12 +217,27 @@ def workflow_create(client, restore_from: Optional[str] = None):
             price_str,
         ]
 
-    chosen_type = choose_from_table(
-        server_types,
-        "Choose a server type (sorted by price, cheapest first):",
-        headers=["Name", "vCPU", "CPU", "Tier", "RAM (GB)", "Disk (GB)", "€/hr"],
-        row_fn=_server_type_row,
-    )
+    if loaded_config:
+        chosen_type = next(
+            (s for s in server_types if s["name"] == loaded_config.get("server_type")), None
+        )
+        if not chosen_type:
+            warn(f"Saved server type '{loaded_config.get('server_type')}' not available — please choose manually.")
+            chosen_type = choose_from_table(
+                server_types,
+                "Choose a server type (sorted by price, cheapest first):",
+                headers=["Name", "vCPU", "CPU", "Tier", "RAM (GB)", "Disk (GB)", "€/hr"],
+                row_fn=_server_type_row,
+            )
+        else:
+            info(f"Server type: [bold]{chosen_type['name']}[/bold] (from config)")
+    else:
+        chosen_type = choose_from_table(
+            server_types,
+            "Choose a server type (sorted by price, cheapest first):",
+            headers=["Name", "vCPU", "CPU", "Tier", "RAM (GB)", "Disk (GB)", "€/hr"],
+            row_fn=_server_type_row,
+        )
     if not chosen_type:
         sys.exit(1)
 
@@ -247,11 +282,17 @@ def workflow_create(client, restore_from: Optional[str] = None):
         size = img.get("disk_size", "?")
         return f"[bold]{name}[/bold]  [dim]{desc}  ({size} GB)[/dim]"
 
-    chosen_image = choose_from_list(
-        images,
-        "Choose a base image:",
-        display_fn=_display_image,
-    )
+    if loaded_config:
+        chosen_image = next(
+            (img for img in images if img["name"] == loaded_config.get("image")), None
+        )
+        if not chosen_image:
+            warn(f"Saved image '{loaded_config.get('image')}' not available — please choose manually.")
+            chosen_image = choose_from_list(images, "Choose a base image:", display_fn=_display_image)
+        else:
+            info(f"Image: [bold]{chosen_image['name']}[/bold] (from config)")
+    else:
+        chosen_image = choose_from_list(images, "Choose a base image:", display_fn=_display_image)
     if not chosen_image:
         sys.exit(1)
 
@@ -269,7 +310,8 @@ def workflow_create(client, restore_from: Optional[str] = None):
 
     # ── 5. Username ──────────────────────────────────────────────────────────
     print_rule("User Configuration")
-    username = prompt_input("Default username", default="ubuntu").strip() or "ubuntu"
+    default_user = loaded_config.get("username", "ubuntu") if loaded_config else "ubuntu"
+    username = prompt_input("Default username", default=default_user).strip() or default_user
 
     # ── 6. Restore from archive? ─────────────────────────────────────────────
     restore_archive_path: Optional[Path] = None
@@ -285,18 +327,43 @@ def workflow_create(client, restore_from: Optional[str] = None):
 
     all_options = get_install_options()
 
-    selected_software = choose_multiple(
-        all_options,
-        "Select software to install (comma-separated numbers, or Enter to skip all):",
-        display_fn=lambda x: f"{x['label']}  [dim]({x['key']})[/dim]",
-    )
-    install_keys = [s["key"] for s in selected_software]
+    if loaded_config:
+        saved_keys = set(loaded_config.get("install", []))
+        pre_selected = [o for o in all_options if o["key"] in saved_keys]
+        info(f"Software from config: [bold]{', '.join(saved_keys) if saved_keys else 'none'}[/bold]")
+        if prompt_confirm("Use this software selection?", default=True):
+            install_keys = list(saved_keys)
+        else:
+            selected_software = choose_multiple(
+                all_options,
+                "Select software to install (comma-separated numbers, or Enter to skip all):",
+                display_fn=lambda x: f"{x['label']}  [dim]({x['key']})[/dim]",
+            )
+            install_keys = [s["key"] for s in selected_software]
+    else:
+        selected_software = choose_multiple(
+            all_options,
+            "Select software to install (comma-separated numbers, or Enter to skip all):",
+            display_fn=lambda x: f"{x['label']}  [dim]({x['key']})[/dim]",
+        )
+        install_keys = [s["key"] for s in selected_software]
 
     # ── 8. Config name ───────────────────────────────────────────────────────
     print_rule("Configuration")
-    config_name = prompt_input("Save this configuration as (name)").strip()
-    if not config_name:
-        config_name = f"config_{int(time.time())}"
+    if loaded_config:
+        default_config_name = loaded_config["name"]
+        raw = prompt_input(
+            "Config name (Enter to keep existing, or type a new name to save as copy, or '-' to skip saving)",
+            default=default_config_name,
+        ).strip()
+        if raw == "-":
+            config_name = None
+        else:
+            config_name = raw or default_config_name
+    else:
+        config_name = prompt_input("Save this configuration as (name)").strip()
+        if not config_name:
+            config_name = f"config_{int(time.time())}"
 
     # ── 9. Server name ───────────────────────────────────────────────────────
     server_name = prompt_input("Server/SSH alias name").strip()
@@ -313,7 +380,7 @@ def workflow_create(client, restore_from: Optional[str] = None):
         ("Username", username),
         ("Software", ", ".join(install_keys) if install_keys else "none"),
         ("SSH keys", f"{len(pubkeys)} key(s) selected"),
-        ("Config name", config_name),
+        ("Config name", config_name if config_name else "[dim]not saving[/dim]"),
         ("Server name", server_name),
         ("Restore archive", str(restore_archive_path) if restore_archive_path else "none"),
     ])
@@ -419,7 +486,8 @@ def workflow_create(client, restore_from: Optional[str] = None):
         "ssh_key_count": len(pubkeys),
         "identity_file": identity_file,
     }
-    state.save_config(config_name, config_data)
+    if config_name:
+        state.save_config(config_name, config_data)
 
     server_info = {
         "server_id": server_id,
