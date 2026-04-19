@@ -62,7 +62,11 @@ Either way, you use `hw` — same syntax regardless of how you installed it.
 ### Building the binary locally
 
 ```bash
-uv run --with pyinstaller pyinstaller --onefile --name hw main.py
+uv run --with nuitka python -m nuitka \
+  --onefile --output-filename=hw --output-dir=dist \
+  --include-data-dir=scripts=scripts \
+  --assume-yes-for-downloads \
+  main.py
 cp dist/hw /usr/local/bin/hw
 ```
 

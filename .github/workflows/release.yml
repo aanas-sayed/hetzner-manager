@@ -48,7 +48,15 @@ jobs:
       - uses: astral-sh/setup-uv@v5
 
       - name: Build binary
-        run: uv run --with pyinstaller pyinstaller --onefile --name hw main.py
+        run: >
+          uv run --with nuitka python -m nuitka
+          --onefile
+          --output-filename=hw
+          --output-dir=dist
+          --include-data-dir=scripts=scripts
+          --assume-yes-for-downloads
+          --no-progressbar
+          main.py
 
       - uses: actions/upload-artifact@v4
         with:
