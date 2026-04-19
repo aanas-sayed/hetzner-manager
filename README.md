@@ -10,10 +10,22 @@ A CLI tool for provisioning, archiving, restoring, and deleting Hetzner Cloud wo
 
 ---
 
-## Demo (example resource creation using v0.1.0)
+## Demo
 
-<!-- replace with an actual recording -->
-![Demo](assets/demo.gif)
+**Create** a server — pick type, image, software, and it's provisioned and hardened automatically:
+
+![Create](assets/create.gif)
+
+SSH config is updated automatically, so once it's ready:
+```bash
+ssh <server-name>
+```
+
+![SSH](assets/ssh.gif)
+
+**Delete** a server when you're done (or archive it first to save your workspace):
+
+![Delete](assets/delete.gif)
 
 ---
 
