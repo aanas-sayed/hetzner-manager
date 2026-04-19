@@ -1,0 +1,9 @@
+[project]
+name = "hetzner-workspace"
+version = "0.1.0"
+description = "CLI tool for provisioning, archiving, restoring, and deleting Hetzner Cloud workspace servers"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.33.1",
+    "rich>=15.0.0",
+]

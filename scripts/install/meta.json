@@ -1,0 +1,42 @@
+{
+  "git": {
+    "label": "Git",
+    "apt_packages": ["git"]
+  },
+  "docker": {
+    "label": "Docker CE + Compose plugin",
+    "apt_packages": []
+  },
+  "uv": {
+    "label": "uv (fast Python package manager)",
+    "apt_packages": []
+  },
+  "npm": {
+    "label": "Node.js LTS + npm",
+    "apt_packages": []
+  },
+  "homebrew": {
+    "label": "Homebrew (Linuxbrew)",
+    "apt_packages": ["build-essential", "procps", "file"]
+  },
+  "go": {
+    "label": "Go (latest stable, arch-aware)",
+    "apt_packages": []
+  },
+  "rust": {
+    "label": "Rust (via rustup)",
+    "apt_packages": ["curl", "build-essential"]
+  },
+  "tmux": {
+    "label": "tmux (terminal multiplexer)",
+    "apt_packages": []
+  },
+  "act": {
+    "label": "act (run GitHub Actions locally)",
+    "apt_packages": ["curl"]
+  },
+  "rclone": {
+    "label": "rclone (sync files to/from cloud storage)",
+    "apt_packages": ["curl"]
+  }
+}
