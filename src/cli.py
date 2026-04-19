@@ -75,7 +75,7 @@ def _get_local_ssh_keys() -> list[dict]:
     return ssh_config.get_local_ssh_public_keys()
 
 
-def _select_ssh_keys(client) -> tuple[list[str], Optional[str]]:
+def _select_ssh_keys(client, default_identity_file: Optional[str] = None) -> tuple[list[str], Optional[str]]:
     """
     Let user pick SSH keys to install on the server.
     Returns (list_of_pubkey_strings, identity_file_path_or_None).
@@ -119,9 +119,24 @@ def _select_ssh_keys(client) -> tuple[list[str], Optional[str]]:
 
     # Offer to pick identity file for SSH config
     if local_keys and identity_file is None:
+        skip_entry = {"name": "Skip — let SSH try keys automatically", "path": None}
+        options = local_keys + [skip_entry]
+
+        # Pre-select default based on saved config
+        default_idx = None
+        if default_identity_file:
+            for i, k in enumerate(local_keys):
+                if k.get("path", "").replace(".pub", "") == default_identity_file:
+                    default_idx = i + 1  # 1-based
+                    break
+
+        label = "Which local key matches your Hetzner account key? (sets IdentityFile in SSH config)"
+        if default_idx:
+            label += f"  [dim](saved: {local_keys[default_idx - 1]['name']})[/dim]"
+
         chosen_key = choose_from_list(
-            local_keys + [{"name": "Skip — let SSH try keys automatically", "path": None}],
-            "Which local key matches your Hetzner account key? (sets IdentityFile in SSH config)",
+            options,
+            label,
             display_fn=lambda k: k["name"] + (f"  [dim]{k.get('path', '')}[/dim]" if k.get("path") else ""),
         )
         if chosen_key and chosen_key.get("path"):
@@ -297,7 +312,10 @@ def workflow_create(client, restore_from: Optional[str] = None):
         sys.exit(1)
 
     # ── 4. SSH Keys ──────────────────────────────────────────────────────────
-    pubkeys, identity_file = _select_ssh_keys(client)
+    pubkeys, identity_file = _select_ssh_keys(
+        client,
+        default_identity_file=loaded_config.get("identity_file") if loaded_config else None,
+    )
 
     # Look up Hetzner account SSH key IDs for the chosen pubkeys
     account_keys = _get_ssh_keys_from_account(client)
