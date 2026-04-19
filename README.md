@@ -63,8 +63,8 @@ Either way, you use `hw` — same syntax regardless of how you installed it.
 
 ```bash
 uv run --with pyinstaller pyinstaller --onedir --name hw main.py
-# binary directory written to dist/hw/
-ln -s "$(pwd)/dist/hw/hw" /usr/local/bin/hw
+cp -r dist/hw /usr/local/lib/hw
+ln -s /usr/local/lib/hw/hw /usr/local/bin/hw
 ```
 
 ---
