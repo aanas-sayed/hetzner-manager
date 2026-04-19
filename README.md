@@ -29,7 +29,7 @@ hetzner-workspace
 
 On first run with no API token configured, you'll be prompted to enter it and asked whether to save it to `~/.hetzner-workspace/.env` — after that, no further setup needed.
 
-Add a shell alias for convenience:
+Add to your shell rc:
 ```bash
 alias hw='hetzner-workspace'
 ```
@@ -46,7 +46,7 @@ uv run main.py
 
 On first run you'll be prompted for your API token and offered the option to save it. Alternatively, copy `.env.example` to `.env` and set `HETZNER_API_TOKEN` manually.
 
-Add a shell alias:
+Add to your shell rc:
 ```bash
 alias hw='uv run /path/to/hetzner-workspace/main.py'
 ```
@@ -64,8 +64,7 @@ uv run --with pyinstaller pyinstaller --onefile --name hetzner-workspace main.py
 
 ### `create` — Provision a new workspace
 ```bash
-hetzner-workspace create   # binary
-uv run main.py create      # from source
+hw create
 ```
 Steps you'll be guided through:
 1. **Load saved config** — optionally pre-fill all options from a previous config.
@@ -93,8 +92,7 @@ SSH config entry added with:
 
 ### `archive` — Save workspace and delete server
 ```bash
-hetzner-workspace archive
-uv run main.py archive
+hw archive
 ```
 1. Select which running server to archive
 2. Name the archive
@@ -106,8 +104,7 @@ uv run main.py archive
 
 ### `restore` — Restore from archive
 ```bash
-hetzner-workspace restore
-uv run main.py restore
+hw restore
 ```
 1. List all local archives with metadata
 2. Pick archive to restore
@@ -117,8 +114,7 @@ uv run main.py restore
 
 ### `delete` — Delete without archiving
 ```bash
-hetzner-workspace delete
-uv run main.py delete
+hw delete
 ```
 1. Select server
 2. **Offers to archive first** (recommended)
@@ -127,8 +123,7 @@ uv run main.py delete
 
 ### `list` — View current state
 ```bash
-hetzner-workspace list
-uv run main.py list
+hw list
 ```
 Shows running servers, saved configs, and local archives.
 
