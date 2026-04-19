@@ -48,12 +48,12 @@ jobs:
       - uses: astral-sh/setup-uv@v5
 
       - name: Build binary
-        run: uv run --with pyinstaller pyinstaller --onefile --name hetzner-workspace main.py
+        run: uv run --with pyinstaller pyinstaller --onefile --name hw main.py
 
       - uses: actions/upload-artifact@v4
         with:
-          name: hetzner-workspace-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}
-          path: dist/hetzner-workspace${{ matrix.os == 'windows' && '.exe' || '' }}
+          name: hw-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/hw${{ matrix.os == 'windows' && '.exe' || '' }}
 
   release:
     name: Create Release
@@ -69,13 +69,12 @@ jobs:
 
       - name: Rename binaries
         run: |
-          for dir in artifacts/hetzner-workspace-*/; do
+          for dir in artifacts/hw-*/; do
             name=$(basename "$dir")
-            # handle both plain binary and .exe
-            if [ -f "$dir/hetzner-workspace.exe" ]; then
-              mv "$dir/hetzner-workspace.exe" "artifacts/${name}.exe"
+            if [ -f "$dir/hw.exe" ]; then
+              mv "$dir/hw.exe" "artifacts/${name}.exe"
             else
-              mv "$dir/hetzner-workspace" "artifacts/$name"
+              mv "$dir/hw" "artifacts/$name"
             fi
             rmdir "$dir"
           done
@@ -83,5 +82,5 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/hetzner-workspace-*
+          files: artifacts/hw-*
           generate_release_notes: true

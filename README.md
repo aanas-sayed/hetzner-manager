@@ -1,8 +1,19 @@
 # Hetzner Workspace Manager
 
+[![Release](https://img.shields.io/github/v/release/aanas-sayed/hetzner-manager?style=flat-square)](https://github.com/aanas-sayed/hetzner-manager/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/aanas-sayed/hetzner-manager/release.yml?style=flat-square&label=build)](https://github.com/aanas-sayed/hetzner-manager/actions/workflows/release.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square)](https://www.python.org/)
+
 > **⚠ Preview / personal use** — this tool provisions and deletes real cloud servers. Running it will incur costs and make destructive changes. Use with care.
 
 A CLI tool for provisioning, archiving, restoring, and deleting Hetzner Cloud workspace servers — with SSH config management, server hardening, and software install automation.
+
+---
+
+## Demo
+
+<!-- replace with an actual recording -->
+![Demo](assets/demo.gif)
 
 ---
 
@@ -14,25 +25,20 @@ Download the latest binary for your platform from [Releases](../../releases/late
 
 | Platform | File |
 |----------|------|
-| macOS (Apple Silicon) | `hetzner-workspace-vX.Y.Z-darwin-arm64` |
-| Linux x86_64 | `hetzner-workspace-vX.Y.Z-linux-x86_64` |
-| Linux arm64 | `hetzner-workspace-vX.Y.Z-linux-arm64` |
-| Windows x86_64 | `hetzner-workspace-vX.Y.Z-windows-x86_64.exe` |
+| macOS (Apple Silicon) | `hw-vX.Y.Z-darwin-arm64` |
+| Linux x86_64 | `hw-vX.Y.Z-linux-x86_64` |
+| Linux arm64 | `hw-vX.Y.Z-linux-arm64` |
+| Windows x86_64 | `hw-vX.Y.Z-windows-x86_64.exe` |
 
 ```bash
-# make executable and move to PATH
+# make executable and install as hw
 chmod +x hetzner-workspace-darwin-arm64
-mv hetzner-workspace-darwin-arm64 /usr/local/bin/hetzner-workspace
+mv hetzner-workspace-darwin-arm64 /usr/local/bin/hw
 
-hetzner-workspace
+hw
 ```
 
 On first run with no API token configured, you'll be prompted to enter it and asked whether to save it to `~/.hetzner-workspace/.env` — after that, no further setup needed.
-
-Add to your shell rc:
-```bash
-alias hw='hetzner-workspace'
-```
 
 ### Option B — Run from source
 
@@ -51,11 +57,13 @@ Add to your shell rc:
 alias hw='uv run /path/to/hetzner-workspace/main.py'
 ```
 
+Either way, you use `hw` — same syntax regardless of how you installed it.
+
 ### Building the binary locally
 
 ```bash
-uv run --with pyinstaller pyinstaller --onefile --name hetzner-workspace main.py
-# binary written to dist/hetzner-workspace
+uv run --with pyinstaller pyinstaller --onefile --name hw main.py
+cp dist/hw /usr/local/bin/hw
 ```
 
 ---
