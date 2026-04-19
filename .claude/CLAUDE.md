@@ -142,3 +142,19 @@ uv run main.py --dry-run create # Preview all actions without executing them
 Use `uv run main.py` — no install step needed. For a shell alias add `alias hw='uv run /path/to/hetzner-workspace/main.py'` to your shell rc.
 
 `.env` is loaded automatically from the project root by `main.py` before any other imports.
+
+---
+
+## Git Workflow
+
+Use **conventional commits** — lowercase, no trailing period:
+
+```
+feat: add rclone install script
+fix: handle missing SSH key gracefully
+chore: update pyproject.toml dependencies
+refactor: extract server polling into helper
+docs: update README with uv instructions
+```
+
+Commit at meaningful checkpoints (completed feature, working fix, clean refactor) — not per file or per line. Never commit broken or half-finished code.
