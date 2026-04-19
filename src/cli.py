@@ -119,11 +119,10 @@ def _select_ssh_keys(client) -> tuple[list[str], Optional[str]]:
 
     # Offer to pick identity file for SSH config
     if local_keys and identity_file is None:
-        info("Which local private key should be used for SSH config entry?")
         chosen_key = choose_from_list(
-            local_keys + [{"name": "Auto (no IdentityFile specified)", "path": None}],
-            "Select identity file:",
-            display_fn=lambda k: k["name"] + (f"  ({k.get('path', '')})" if k.get("path") else ""),
+            local_keys + [{"name": "Skip — let SSH try keys automatically", "path": None}],
+            "Which local key matches your Hetzner account key? (sets IdentityFile in SSH config)",
+            display_fn=lambda k: k["name"] + (f"  [dim]{k.get('path', '')}[/dim]" if k.get("path") else ""),
         )
         if chosen_key and chosen_key.get("path"):
             identity_file = chosen_key["path"].replace(".pub", "")
