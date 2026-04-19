@@ -63,7 +63,7 @@ Either way, you use `hw` — same syntax regardless of how you installed it.
 ### Building the binary locally
 
 ```bash
-uv run --with pyinstaller pyinstaller --onedir --name hw main.py
+uv run --with pyinstaller pyinstaller --onedir --name hw --add-data "scripts:scripts" main.py
 cp -r dist/hw /usr/local/lib/hw
 ln -s /usr/local/lib/hw/hw /usr/local/bin/hw
 ```

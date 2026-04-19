@@ -52,7 +52,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
 
       - name: Build (PyInstaller --onedir)
-        run: uv run --with pyinstaller pyinstaller --onedir --name hw main.py
+        run: uv run --with pyinstaller pyinstaller --onedir --name hw --add-data "scripts:scripts" main.py
 
       - name: Package (Unix)
         if: matrix.os != 'windows'
