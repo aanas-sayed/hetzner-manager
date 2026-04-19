@@ -32,36 +32,41 @@ jobs:
           - os: linux
             arch: x86_64
             runner: ubuntu-latest
+            ext: tar.gz
           - os: linux
             arch: arm64
             runner: ubuntu-24.04-arm
+            ext: tar.gz
           - os: darwin
             arch: arm64
             runner: macos-latest
+            ext: tar.gz
           - os: windows
             arch: x86_64
             runner: windows-latest
+            ext: zip
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: astral-sh/setup-uv@v5
 
-      - name: Build binary
-        run: >
-          uv run --with nuitka python -m nuitka
-          --onefile
-          --output-filename=hw
-          --output-dir=dist
-          --include-data-dir=scripts=scripts
-          --assume-yes-for-downloads
-          --no-progressbar
-          main.py
+      - name: Build (PyInstaller --onedir)
+        run: uv run --with pyinstaller pyinstaller --onedir --name hw main.py
+
+      - name: Package (Unix)
+        if: matrix.os != 'windows'
+        run: tar -czf hw-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz -C dist hw
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows'
+        run: Compress-Archive -Path dist\hw -DestinationPath hw-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip
+        shell: pwsh
 
       - uses: actions/upload-artifact@v4
         with:
           name: hw-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}
-          path: dist/hw${{ matrix.os == 'windows' && '.exe' || '' }}
+          path: hw-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}.${{ matrix.ext }}
 
   release:
     name: Create Release
@@ -75,17 +80,10 @@ jobs:
         with:
           path: artifacts
 
-      - name: Rename binaries
+      - name: Collect archives
         run: |
-          for dir in artifacts/hw-*/; do
-            name=$(basename "$dir")
-            if [ -f "$dir/hw.exe" ]; then
-              mv "$dir/hw.exe" "artifacts/${name}.exe"
-            else
-              mv "$dir/hw" "artifacts/$name"
-            fi
-            rmdir "$dir"
-          done
+          find artifacts/ -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} artifacts/ \;
+          find artifacts/ -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
           ls artifacts/
 
       - uses: softprops/action-gh-release@v2

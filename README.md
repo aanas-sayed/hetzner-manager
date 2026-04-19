@@ -25,15 +25,15 @@ Download the latest binary for your platform from [Releases](../../releases/late
 
 | Platform | File |
 |----------|------|
-| macOS (Apple Silicon) | `hw-vX.Y.Z-darwin-arm64` |
-| Linux x86_64 | `hw-vX.Y.Z-linux-x86_64` |
-| Linux arm64 | `hw-vX.Y.Z-linux-arm64` |
-| Windows x86_64 | `hw-vX.Y.Z-windows-x86_64.exe` |
+| macOS (Apple Silicon) | `hw-vX.Y.Z-darwin-arm64.tar.gz` |
+| Linux x86_64 | `hw-vX.Y.Z-linux-x86_64.tar.gz` |
+| Linux arm64 | `hw-vX.Y.Z-linux-arm64.tar.gz` |
+| Windows x86_64 | `hw-vX.Y.Z-windows-x86_64.zip` |
 
 ```bash
-# make executable and install as hw
-chmod +x hetzner-workspace-darwin-arm64
-mv hetzner-workspace-darwin-arm64 /usr/local/bin/hw
+# extract and symlink (macOS / Linux)
+tar -xzf hw-vX.Y.Z-darwin-arm64.tar.gz -C ~/.local/
+ln -s ~/.local/hw/hw /usr/local/bin/hw
 
 hw
 ```
@@ -62,12 +62,9 @@ Either way, you use `hw` — same syntax regardless of how you installed it.
 ### Building the binary locally
 
 ```bash
-uv run --with nuitka python -m nuitka \
-  --onefile --output-filename=hw --output-dir=dist \
-  --include-data-dir=scripts=scripts \
-  --assume-yes-for-downloads \
-  main.py
-cp dist/hw /usr/local/bin/hw
+uv run --with pyinstaller pyinstaller --onedir --name hw main.py
+# binary directory written to dist/hw/
+ln -s "$(pwd)/dist/hw/hw" /usr/local/bin/hw
 ```
 
 ---
