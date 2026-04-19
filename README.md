@@ -4,15 +4,56 @@ A CLI tool for provisioning, archiving, restoring, and deleting Hetzner Cloud wo
 
 ---
 
-## Quick Start
+## Installation
+
+### Option A — Download binary (recommended)
+
+Download the latest binary for your platform from [Releases](../../releases/latest):
+
+| Platform | File |
+|----------|------|
+| macOS (Apple Silicon) | `hetzner-workspace-darwin-arm64` |
+| macOS (Intel) | `hetzner-workspace-darwin-x86_64` |
+| Linux x86_64 | `hetzner-workspace-linux-x86_64` |
+| Linux arm64 | `hetzner-workspace-linux-arm64` |
 
 ```bash
-# 1. Configure your API token
-cp .env.example .env
-# edit .env and set HETZNER_API_TOKEN
+# make executable and move to PATH
+chmod +x hetzner-workspace-darwin-arm64
+mv hetzner-workspace-darwin-arm64 /usr/local/bin/hetzner-workspace
 
-# 2. Run (uv handles deps and .env automatically)
+hetzner-workspace
+```
+
+On first run with no API token configured, you'll be prompted to enter it and asked whether to save it to `~/.hetzner-workspace/.env` — after that, no further setup needed.
+
+Add a shell alias for convenience:
+```bash
+alias hw='hetzner-workspace'
+```
+
+### Option B — Run from source
+
+Requires [uv](https://docs.astral.sh/uv/).
+
+```bash
+git clone <repo>
+cd hetzner-workspace
 uv run main.py
+```
+
+On first run you'll be prompted for your API token and offered the option to save it. Alternatively, copy `.env.example` to `.env` and set `HETZNER_API_TOKEN` manually.
+
+Add a shell alias:
+```bash
+alias hw='uv run /path/to/hetzner-workspace/main.py'
+```
+
+### Building the binary locally
+
+```bash
+uv run --with pyinstaller pyinstaller --onefile --name hetzner-workspace main.py
+# binary written to dist/hetzner-workspace
 ```
 
 ---
@@ -21,7 +62,8 @@ uv run main.py
 
 ### `create` — Provision a new workspace
 ```bash
-uv run main.py create
+hetzner-workspace create   # binary
+uv run main.py create      # from source
 ```
 Steps you'll be guided through:
 1. **Server type** — sorted cheapest first, showing CPU/RAM/arch/price. Location auto-selected (cheapest region first).
@@ -47,6 +89,7 @@ SSH config entry added with:
 
 ### `archive` — Save workspace and delete server
 ```bash
+hetzner-workspace archive
 uv run main.py archive
 ```
 1. Select which running server to archive
@@ -59,6 +102,7 @@ uv run main.py archive
 
 ### `restore` — Restore from archive
 ```bash
+hetzner-workspace restore
 uv run main.py restore
 ```
 1. List all local archives with metadata
@@ -69,6 +113,7 @@ uv run main.py restore
 
 ### `delete` — Delete without archiving
 ```bash
+hetzner-workspace delete
 uv run main.py delete
 ```
 1. Select server
@@ -78,6 +123,7 @@ uv run main.py delete
 
 ### `list` — View current state
 ```bash
+hetzner-workspace list
 uv run main.py list
 ```
 Shows running servers, saved configs, and local archives.
@@ -104,21 +150,21 @@ Override location: `export HW_STATE_DIR=/path/to/dir`
 
 ## Environment Variables
 
-Set these in `.env` (copy from `.env.example`):
-
 | Variable | Purpose |
 |----------|---------|
-| `HETZNER_API_TOKEN` | Hetzner Cloud API token (required) |
+| `HETZNER_API_TOKEN` | Hetzner Cloud API token — prompted on first run, saved to `~/.hetzner-workspace/.env` |
 | `HW_STATE_DIR` | Override state directory (default: `~/.hetzner-workspace`) |
+
+Loaded from (in order, first match wins): project `.env` → current directory `.env` → `~/.hetzner-workspace/.env`.
 
 ---
 
 ## Networking
 
-- **IPv6 only** — no IPv4 assigned (saves money, Hetzner IPv6 is free)
+- **IPv4 optional** — prompted during `create`. IPv6 is always assigned. Enabling IPv4 adds a small cost (~€0.001/hr).
 - Default networking only; no private networks added
 
-> **Note**: If connecting from an IPv4-only network, you'll need to use a proxy or add IPv4 via the Hetzner console.
+> **Note**: IPv6-only servers cannot reach GitHub, Docker Hub, or AWS S3 — enable IPv4 if you need those during setup.
 
 ---
 
@@ -166,7 +212,6 @@ Archives use `tar + zstd` compression:
 
 ## Requirements
 
-- Python 3.10+
-- [uv](https://docs.astral.sh/uv/) (`requests` and `rich` managed automatically)
-- `ssh`, `scp` available in PATH
-- `zstd` on remote server (installed automatically via apt)
+**Binary**: no dependencies — download and run.
+
+**From source**: Python 3.10+ and [uv](https://docs.astral.sh/uv/) (`requests` and `rich` managed automatically).

@@ -146,14 +146,30 @@ class HetznerClient:
         return self._request("GET", "/pricing")
 
 
+def _save_token_to_state(token: str) -> None:
+    from pathlib import Path
+    state_dir = Path(os.environ.get("HW_STATE_DIR", Path.home() / ".hetzner-workspace"))
+    state_dir.mkdir(parents=True, exist_ok=True)
+    env_file = state_dir / ".env"
+    lines = env_file.read_text().splitlines() if env_file.exists() else []
+    lines = [l for l in lines if not l.startswith("HETZNER_API_TOKEN=")]
+    lines.append(f"HETZNER_API_TOKEN={token}")
+    env_file.write_text("\n".join(lines) + "\n")
+    from src.ui import success
+    success(f"Token saved to {env_file}")
+
+
 def get_client() -> HetznerClient:
     """Create a HetznerClient from environment or prompt."""
     token = os.environ.get("HETZNER_API_TOKEN")
     if not token:
-        from src.ui import prompt_input, error, info
-        info("No HETZNER_API_TOKEN environment variable found.")
+        from src.ui import prompt_input, prompt_confirm, error, info
+        info("No HETZNER_API_TOKEN found.")
         token = prompt_input("Enter your Hetzner API token").strip()
         if not token:
             error("API token is required.")
             sys.exit(1)
+        os.environ["HETZNER_API_TOKEN"] = token
+        if prompt_confirm("Save token to ~/.hetzner-workspace/.env for future use?", default=True):
+            _save_token_to_state(token)
     return HetznerClient(token)

@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }}, ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: x86_64
+            runner: ubuntu-latest
+          - os: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm
+          - os: darwin
+            arch: x86_64
+            runner: macos-13
+          - os: darwin
+            arch: arm64
+            runner: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Build binary
+        run: uv run --with pyinstaller pyinstaller --onefile --name hetzner-workspace main.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hetzner-workspace-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/hetzner-workspace
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Rename binaries
+        run: |
+          for dir in artifacts/hetzner-workspace-*/; do
+            name=$(basename "$dir")
+            mv "$dir/hetzner-workspace" "artifacts/$name"
+            rmdir "$dir"
+          done
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/hetzner-workspace-*
+          generate_release_notes: true
