@@ -173,14 +173,16 @@ def workflow_create(client, restore_from: Optional[str] = None):
     # Build display rows
     def _cpu_label(st) -> str:
         name = st.get("name", "")
-        arch = st.get("architecture", "x86")
         cpu_type = st.get("cpu_type", "shared")
-        if cpu_type == "dedicated":
-            return f"{arch}/dedicated"
-        # shared — distinguish cost-optimised (cx/cax) from performance (cpx)
+        if name.startswith("cax"):
+            return "Arm64/shared"
         if name.startswith("cpx"):
-            return f"{arch}/shared-perf"
-        return f"{arch}/shared"
+            return "AMD/shared-perf"
+        if name.startswith("ccx"):
+            return "AMD/dedicated"
+        # cx* — Intel/AMD shared (cost-optimised)
+        tier = "dedicated" if cpu_type == "dedicated" else "shared"
+        return f"Intel/AMD/{tier}"
 
     def _display_server_type(st):
         cores = st.get("cores", "?")
