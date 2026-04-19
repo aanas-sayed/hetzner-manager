@@ -6,7 +6,23 @@ on:
       - 'v*'
 
 jobs:
+  verify:
+    name: Verify tag matches pyproject.toml version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check version
+        run: |
+          TOML_VERSION=$(grep '^version' pyproject.toml | cut -d'"' -f2)
+          TAG="${GITHUB_REF_NAME}"
+          if [ "$TAG" != "v${TOML_VERSION}" ]; then
+            echo "ERROR: tag '$TAG' does not match pyproject.toml version '$TOML_VERSION' (expected 'v${TOML_VERSION}')"
+            exit 1
+          fi
+          echo "Version check passed: $TAG == v${TOML_VERSION}"
+
   build:
+    needs: verify
     name: Build (${{ matrix.os }}, ${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -36,7 +52,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: hetzner-workspace-${{ matrix.os }}-${{ matrix.arch }}
+          name: hetzner-workspace-${{ github.ref_name }}-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/hetzner-workspace
 
   release:
@@ -58,6 +74,7 @@ jobs:
             mv "$dir/hetzner-workspace" "artifacts/$name"
             rmdir "$dir"
           done
+          ls artifacts/
 
       - uses: softprops/action-gh-release@v2
         with:
