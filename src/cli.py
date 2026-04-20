@@ -131,13 +131,12 @@ def _select_ssh_keys(client, default_identity_file: Optional[str] = None) -> tup
                     break
 
         label = "Which local key matches your Hetzner account key? (sets IdentityFile in SSH config)"
-        if default_idx:
-            label += f"  [dim](saved: {local_keys[default_idx - 1]['name']})[/dim]"
 
         chosen_key = choose_from_list(
             options,
             label,
             display_fn=lambda k: k["name"] + (f"  [dim]{k.get('path', '')}[/dim]" if k.get("path") else ""),
+            default_idx=default_idx,
         )
         if chosen_key and chosen_key.get("path"):
             identity_file = chosen_key["path"].replace(".pub", "")

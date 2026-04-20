@@ -128,10 +128,11 @@ def prompt_confirm(label: str, default: bool = True) -> bool:
         return val in ("y", "yes")
 
 
-def choose_from_list(items: list, label: str, display_fn=None, min_col_width: int = 0) -> any:
+def choose_from_list(items: list, label: str, display_fn=None, min_col_width: int = 0, default_idx: int = None) -> any:
     """
     Present a numbered list and return the chosen item.
     display_fn(item) -> str for custom display.
+    default_idx: 1-based index; Enter with blank input selects it.
     """
     if not items:
         error("No items to choose from.")
@@ -141,17 +142,22 @@ def choose_from_list(items: list, label: str, display_fn=None, min_col_width: in
         _console.print(f"\n[bold]{label}[/bold]")
         for i, item in enumerate(items, 1):
             text = display_fn(item) if display_fn else str(item)
-            _console.print(f"  [dim]{i:>2}.[/dim] {text}")
+            marker = f"[bold cyan]>{i:>2}.[/bold cyan]" if i == default_idx else f"[dim]{i:>2}.[/dim]"
+            _console.print(f"  {marker} {text}")
         _console.print()
     else:
         print(f"\n{label}")
         for i, item in enumerate(items, 1):
             text = display_fn(item) if display_fn else str(item)
-            print(f"  {i:>2}. {_strip(text)}")
+            marker = f"*{i:>2}." if i == default_idx else f" {i:>2}."
+            print(f"  {marker} {_strip(text)}")
         print()
 
+    prompt = f"Enter number" + (f" [{default_idx}]" if default_idx else "")
     while True:
-        raw = prompt_input("Enter number").strip()
+        raw = prompt_input(prompt).strip()
+        if not raw and default_idx:
+            return items[default_idx - 1]
         try:
             idx = int(raw) - 1
             if 0 <= idx < len(items):
