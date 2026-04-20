@@ -99,13 +99,18 @@ def entry_exists(name: str) -> bool:
 
 
 def remove_known_host(hostname: str) -> None:
-    """Remove a hostname from ~/.ssh/known_hosts to prevent stale key errors."""
+    """Remove a hostname from ~/.ssh/known_hosts using ssh-keygen -R."""
+    if not hostname:
+        return
     known_hosts = Path.home() / ".ssh" / "known_hosts"
     if not known_hosts.exists():
         return
-    content = known_hosts.read_text()
-    lines = [l for l in content.splitlines() if not l.startswith(hostname)]
-    known_hosts.write_text("\n".join(lines) + "\n")
+    import subprocess
+    subprocess.run(
+        ["ssh-keygen", "-R", hostname],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 def get_local_ssh_public_keys() -> list[dict]:
