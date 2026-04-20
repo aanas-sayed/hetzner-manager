@@ -718,7 +718,7 @@ def workflow_restore(client):
             ("Software", ", ".join(original_config.get("install", []))),
         ])
         if prompt_confirm("Use original configuration?", default=True):
-            preloaded = original_config
+            preloaded = {"name": config_name, **original_config}
 
     # Run create workflow with restore — pass preloaded config to skip the
     # "load saved config?" prompt when the user accepted the original config.
