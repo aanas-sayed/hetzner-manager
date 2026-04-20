@@ -148,31 +148,31 @@ def _select_ssh_keys(client, default_identity_file: Optional[str] = None) -> tup
 # Workflow: CREATE
 # ─────────────────────────────────────────────────────────────────────────────
 
-def workflow_create(client, restore_from: Optional[str] = None):
+def workflow_create(client, restore_from: Optional[str] = None, loaded_config: Optional[dict] = None):
     print_header(
         "Create Workspace",
         "Provision a new Hetzner cloud server with your configuration",
     )
 
     # ── 0. Optionally load a saved config ────────────────────────────────────
-    saved_configs = state.list_configs()
-    loaded_config: Optional[dict] = None
-    if saved_configs:
-        use_config = prompt_confirm("Load a saved config?", default=True)
-        if use_config:
-            config_items = [{"name": k, **v} for k, v in saved_configs.items()]
-            chosen_cfg = choose_from_list(
-                config_items,
-                "Choose a config:",
-                display_fn=lambda c: (
-                    f"[bold]{c['name']}[/bold]  "
-                    f"[dim]{c.get('server_type','?')} · {c.get('image','?')} · "
-                    f"user={c.get('username','?')} · "
-                    f"install=[{', '.join(c.get('install', []))}][/dim]"
-                ),
-            )
-            if chosen_cfg:
-                loaded_config = chosen_cfg
+    if loaded_config is None:
+        saved_configs = state.list_configs()
+        if saved_configs:
+            use_config = prompt_confirm("Load a saved config?", default=True)
+            if use_config:
+                config_items = [{"name": k, **v} for k, v in saved_configs.items()]
+                chosen_cfg = choose_from_list(
+                    config_items,
+                    "Choose a config:",
+                    display_fn=lambda c: (
+                        f"[bold]{c['name']}[/bold]  "
+                        f"[dim]{c.get('server_type','?')} · {c.get('image','?')} · "
+                        f"user={c.get('username','?')} · "
+                        f"install=[{', '.join(c.get('install', []))}][/dim]"
+                    ),
+                )
+                if chosen_cfg:
+                    loaded_config = chosen_cfg
 
     # ── 1. Pick server type ──────────────────────────────────────────────────
     print_rule("Server Selection")
@@ -708,6 +708,7 @@ def workflow_restore(client):
     config_name = chosen_archive.get("config_name", "")
     original_config = state.load_config(config_name) if config_name else None
     
+    preloaded: Optional[dict] = None
     if original_config:
         info(f"Original build config found: [bold]{config_name}[/bold]")
         print_key_value([
@@ -716,12 +717,12 @@ def workflow_restore(client):
             ("Username", original_config.get("username", "?")),
             ("Software", ", ".join(original_config.get("install", []))),
         ])
-        use_original = prompt_confirm("Use original configuration?", default=True)
-    else:
-        use_original = False
+        if prompt_confirm("Use original configuration?", default=True):
+            preloaded = original_config
 
-    # Run create workflow with restore
-    workflow_create(client, restore_from=chosen_archive["archive_name"])
+    # Run create workflow with restore — pass preloaded config to skip the
+    # "load saved config?" prompt when the user accepted the original config.
+    workflow_create(client, restore_from=chosen_archive["archive_name"], loaded_config=preloaded)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

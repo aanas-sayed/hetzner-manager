@@ -222,6 +222,8 @@ Host my-server
 | `tmux` | tmux terminal multiplexer via apt |
 | `act` | act — run GitHub Actions locally |
 | `rclone` | rclone — sync files to/from cloud storage |
+| `ollama` | Ollama — run LLMs locally (via official install script) |
+| `wine` | Wine stable — run Windows applications (via WineHQ repo) |
 
 New tools can be added without touching Python — see [Adding a New Install Tool](#adding-a-new-install-tool).
 
