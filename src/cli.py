@@ -131,13 +131,12 @@ def _select_ssh_keys(client, default_identity_file: Optional[str] = None) -> tup
                     break
 
         label = "Which local key matches your Hetzner account key? (sets IdentityFile in SSH config)"
-        if default_idx:
-            label += f"  [dim](saved: {local_keys[default_idx - 1]['name']})[/dim]"
 
         chosen_key = choose_from_list(
             options,
             label,
             display_fn=lambda k: k["name"] + (f"  [dim]{k.get('path', '')}[/dim]" if k.get("path") else ""),
+            default_idx=default_idx,
         )
         if chosen_key and chosen_key.get("path"):
             identity_file = chosen_key["path"].replace(".pub", "")
@@ -816,8 +815,8 @@ def _delete_server_resources(client, server_info: dict, skip_confirm: bool = Fal
 
     if _log.DRY_RUN:
         _log.dry_action(f"would remove SSH config entry '{server_name}'")
-        if hostname:
-            _log.dry_action(f"would remove '{hostname}' from known_hosts")
+        for addr in filter(None, [server_info.get("ipv4_address"), server_info.get("ipv6_address")]):
+            _log.dry_action(f"would remove '{addr}' from known_hosts")
         _log.dry_action(f"would unregister server {server_id} from state")
         return
 
@@ -825,9 +824,12 @@ def _delete_server_resources(client, server_info: dict, skip_confirm: bool = Fal
     if ssh_config.remove_entry(server_name):
         success(f"Removed SSH config entry: {server_name}")
 
-    # Remove from known_hosts
-    if hostname:
-        ssh_config.remove_known_host(hostname)
+    # Remove from known_hosts (both IPv4 and IPv6 if present)
+    ipv4 = server_info.get("ipv4_address", "")
+    ipv6 = server_info.get("ipv6_address", "")
+    for addr in filter(None, [ipv4, ipv6]):
+        ssh_config.remove_known_host(addr)
+    if ipv4 or ipv6:
         info("Removed from ~/.ssh/known_hosts")
 
     # Unregister from state
