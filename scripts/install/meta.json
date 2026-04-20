@@ -38,5 +38,13 @@
   "rclone": {
     "label": "rclone (sync files to/from cloud storage)",
     "apt_packages": ["curl"]
+  },
+  "ollama": {
+    "label": "Ollama (run LLMs locally)",
+    "apt_packages": ["curl"]
+  },
+  "wine": {
+    "label": "Wine (run Windows applications)",
+    "apt_packages": ["curl", "gpg"]
   }
 }
