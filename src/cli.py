@@ -540,8 +540,7 @@ def workflow_create(client, restore_from: Optional[str] = None, loaded_config: O
     # ── 15. Restore archive if requested ─────────────────────────────────────
     if restore_archive_path and restore_archive_path.exists():
         blank()
-        info("Waiting 60 seconds for cloud-init to complete before restoring archive...")
-        time.sleep(60)
+        _wait_for_cloud_init(server_name, server_info, username)
         _do_restore_archive(server_name, server_info, restore_archive_path, username)
 
     blank()
@@ -558,6 +557,42 @@ def workflow_create(client, restore_from: Optional[str] = None, loaded_config: O
         ("Config saved", config_name if config_name else "not saved"),
     ])
     blank()
+
+
+def _wait_for_cloud_init(server_name: str, server_info: dict, username: str) -> None:
+    """Poll until SSH is reachable, then wait for cloud-init to finish."""
+    hostname = server_info.get("ipv6_address") or server_info.get("hostname")
+    id_file = server_info.get("identity_file")
+    ssh_opts = ["-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=5",
+                "-o", "BatchMode=yes"]
+    if id_file:
+        ssh_opts += ["-i", id_file]
+    target = server_name if ssh_config.entry_exists(server_name) else f"{username}@{hostname}"
+
+    if _log.DRY_RUN:
+        _log.dry_action("wait for SSH reachability then cloud-init status --wait")
+        return
+
+    info("Waiting for SSH to become available...")
+    deadline = time.time() + 300  # 5-minute hard limit
+    while time.time() < deadline:
+        result = subprocess.run(
+            ["ssh"] + ssh_opts + [target, "true"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        if result.returncode == 0:
+            break
+        time.sleep(5)
+    else:
+        warn("SSH did not become available within 5 minutes — proceeding anyway.")
+        return
+
+    info("SSH ready. Waiting for cloud-init to complete...")
+    subprocess.run(
+        ["ssh"] + ssh_opts + [target, "sudo cloud-init status --wait"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    success("cloud-init complete.")
 
 
 def _do_restore_archive(server_name: str, server_info: dict, archive_path: Path, username: str):
