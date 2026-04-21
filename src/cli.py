@@ -542,6 +542,10 @@ def workflow_create(client, restore_from: Optional[str] = None, loaded_config: O
         blank()
         _wait_for_cloud_init(server_name, server_info, username)
         _do_restore_archive(server_name, server_info, restore_archive_path, username)
+    else:
+        blank()
+        if prompt_confirm("Monitor cloud-init and notify when server is ready?", default=True):
+            _wait_for_cloud_init(server_name, server_info, username)
 
     blank()
     print_rule("Done")
